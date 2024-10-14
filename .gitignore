@@ -5,3 +5,5 @@ inst/doc
 .RData
 .Ruserdata
 .Renvironment
+/doc/
+/Meta/
