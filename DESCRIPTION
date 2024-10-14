@@ -1,0 +1,25 @@
+Package: liftchart
+Type: Package
+Title: Tools for Creating Cumulative Gain and Lift Charts
+Version: 0.1.0
+Authors@R: 
+    person("Arman", "Radmanesh", , "radmanesh@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "https://orcid.org/0009-0007-5305-9689"))
+Description: Provides functions to calculate and plot cumulative gain and lift charts for evaluating predictive models.
+    The package is designed to work with the `dplyr` package, `rlang` and the `ggplot2` package.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports:
+    dplyr,
+    ggplot2,
+    rlang
+Suggests:
+    knitr,
+    rmarkdown,
+    caret,
+    testthat (>= 3.0.0)
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Config/testthat/edition: 3
+VignetteBuilder: knitr

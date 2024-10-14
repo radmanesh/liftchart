@@ -1,0 +1,220 @@
+---
+title: "Introduction to the liftchart Package"
+author: "Arman Radmanesh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to the liftchart Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Introduction
+
+The liftchart package provides tools for creating cumulative gain and lift charts, which are essential for evaluating the performance of predictive classification models.
+These charts help in visualizing the effectiveness of a model by showing how well it distinguishes between classes across different segments of data.
+
+In this vignette, we’ll walk through the usage of the liftchart package, demonstrating how to calculate lift chart data and generate cumulative gain plots using both synthetic and real datasets.
+
+# Installation
+
+You can install the liftchart package from GitHub using the devtools package:
+
+```{r installation, eval = FALSE}
+# Install devtools if you haven't already 
+install.packages("devtools")
+
+# Install liftchart from GitHub
+devtools::install_github("radmanesh/liftchart")
+```
+
+# Getting Started
+
+Load the liftchart package along with other necessary packages:
+
+```{r load-packages}
+library(liftchart)
+library(ggplot2)  # For additional plotting options (optional)
+```
+
+## Example 1: Using Synthetic Data
+
+Let’s start by creating a simple example using synthetic data to understand how the functions work.
+
+### Generating Synthetic Data
+
+```{r synthetic-data}
+set.seed(123)
+data <- data.frame(
+  actual = rbinom(1000, 1, 0.3),              # Actual binary outcomes
+  predicted = runif(1000, min = 0, max = 1)   # Predicted probabilities
+)
+head(data)
+```
+
+### Calculating Lift Chart Data
+
+Use the lift_chart_data() function to calculate the cumulative gains and lift:
+
+```{r lift-data-synthetic}
+lift_data <- lift_chart_data(data, actual = "actual", predicted = "predicted", groups = 10)
+print(lift_data)
+```
+
+### Plotting the Cumulative Gains Chart
+
+Generate the cumulative gains plot using plot_cumulative_gain():
+
+```{r plot-cumulative-gain-synthetic}
+plot_cumulative_gain(lift_data)
+```
+
+## Example 2: Using the Iris Dataset
+
+We’ll now use the famous iris dataset to demonstrate how the package works with real data.
+
+### Preparing the Data
+
+First, we’ll convert the multi-class Species variable into a binary outcome for simplicity:
+
+```{r prepare-iris-data}
+data(iris)
+iris$Species_binary <- ifelse(iris$Species == "setosa", 1, 0)
+
+# Create a logistic regression model to predict the binary outcome
+model <- glm(Species_binary ~ Sepal.Length + Sepal.Width, data = iris, family = binomial)
+
+# Get predicted probabilities
+iris$predicted <- predict(model, iris, type = "response")
+head(iris)
+```
+
+### Calculating Lift Chart Data
+
+```{r lift-data-iris}
+lift_data_iris <- lift_chart_data(iris, actual = "Species_binary", 
+                                  predicted = "predicted", groups = 10)
+print(lift_data_iris)
+```
+
+### Plotting the Cumulative Gains Chart
+
+```{r plot-cumulative-gain-iris}
+plot_cumulative_gain(lift_data_iris)
+```
+
+# Understanding the Output
+
+The cumulative gains chart plots the percentage of total positive responses (e.g., correctly predicted positive cases) captured by each decile (or group).
+A model with good predictive power will show a steep curve, indicating that the top deciles capture a large portion of the positive responses.
+
+# Customizing the Plots
+
+You can customize the plots by modifying the ggplot2 components.
+For example, adding a baseline or adjusting the theme:
+
+```{r customized-plot}
+library(ggplot2)
+
+# Add a baseline representing a random model
+baseline_data <- data.frame(
+  bucket = c(0, max(lift_data_iris$bucket)),
+  gain = c(0, 100)
+)
+
+plot_cumulative_gain(lift_data_iris) +
+  ggplot2::geom_line(data = baseline_data, aes(x = bucket, y = gain), linetype = "dashed", color = "red") +
+  ggplot2::labs(title = "Customized Cumulative Gains Plot") +
+  ggplot2::theme_minimal()
+```
+
+## Example 3: Using the German Credit Data
+
+For a more complex example, let’s use the GermanCredit dataset from the caret package, which contains credit data with a binary outcome.
+
+### Loading and Preparing the Data
+
+```{r prepare-german-credit-data, message = FALSE}
+if (!requireNamespace("caret", quietly = TRUE)) {
+  install.packages("caret")
+}
+library(caret)
+
+data("GermanCredit")
+
+# Convert the target variable to binary (GoodCredit: 1, BadCredit: 0)
+GermanCredit$Class <- ifelse(GermanCredit$Class == "Good", 1, 0)
+
+# Split the data into training and testing sets
+set.seed(123)
+trainIndex <- createDataPartition(GermanCredit$Class, p = 0.7, list = FALSE)
+trainData <- GermanCredit[trainIndex, ]
+testData <- GermanCredit[-trainIndex, ]
+
+# Train a logistic regression model
+model <- glm(Class ~ Duration + Amount + Age, data = trainData, family = binomial)
+
+# Get predicted probabilities on the test set
+testData$predicted <- predict(model, testData, type = "response")
+head(testData)
+```
+
+### Calculating Lift Chart Data
+
+```{r lift-data-german-credit}
+lift_data_credit <- lift_chart_data(testData, actual = "Class", predicted = "predicted", groups = 10)
+print(lift_data_credit)
+```
+
+### Plotting the Cumulative Gains Chart
+
+```{r plot-cumulative-gain-german-credit}
+plot_cumulative_gain(lift_data_credit)
+```
+
+# Interpreting the Lift Chart
+
+The lift chart helps in understanding how much better the model performs compared to random selection:
+
+-   **Cumulative Gain**: Indicates the percentage of positive cases captured up to each decile.
+-   **Lift**: The ratio of the cumulative gain to the baseline (random model). A lift greater than 1 indicates better performance than random.
+
+# Conclusion
+
+The liftchart package provides easy-to-use functions for calculating and visualizing cumulative gains and lift charts, aiding in the evaluation of classification models. By following the examples provided, you can apply these tools to your own datasets to assess model performance effectively.
+
+# References
+-   **Kuhn, M., & Johnson, K.** (2013). *Applied Predictive Modeling.* Springer.
+-   **James, G., Witten, D., Hastie, T., & Tibshirani, R.** (2023). *An Introduction to Statistical Learning: With Applications in R.* Springer.
+	
+# Additional Resources
+-   **Package Documentation**: Refer to the function documentation for more details on parameters and usage.
+-   GitHub Repository: Visit the [liftchart GitHub repository](https://github.com/radmanesh/liftchart "liftchart GitHub repository") for source code and issue tracking.
+
+# Session Info
+````{r session-info, echo=TRUE}
+sessionInfo()
+````
+
+
+```{r intro}
+data(iris)
+iris$Species_num <- as.numeric(iris$Species)
+model <- lm(iris$Species_num ~ iris$Sepal.Width, data = iris)
+# now get the predictions
+iris$predicted <- predict(model, iris)
+```
+
+```{r}
+lift_data <- lift_chart_data(iris, actual="Species_num", predicted ="predicted")
+plot_cumulative_gain(lift_data)
+```
